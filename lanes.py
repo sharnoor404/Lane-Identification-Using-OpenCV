@@ -133,5 +133,10 @@ while(cap.isOpened()):
     #here lane_image has 20%less weight than line_image which is done to make lane_image look darker in comparison to line_image
     combo_image=cv2.addWeighted(frame,0.8,line_image,1,1)
     cv2.imshow('result',combo_image)
-    # displays image for infinite time
-    cv2.waitKey(1)
+    # displays image for infinite time or tillkeyboard key 'q' is pressed
+    #another way of writing the if statement is if cv2.waitKey(1) & 0xFF == ord('q'):, it just masks integers we get from waitKey to bits and ensures cross platform security
+    if cv2.waitKey(1) == ord('q'):
+        break
+
+cap.release()
+cv2.destroyAllWindows()
