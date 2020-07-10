@@ -2,6 +2,33 @@ import cv2
 import numpy as np
 import matplotlib.pyplot as plt
 
+def make_coordinate(image,line_parameters):
+    slope,intercept=line_parameters
+    y1=image.shape[0]
+    y2=y1*(3/5)
+    x1=(y1-intercept)/slope
+    x2=(y2-intercept)/slope
+    return np.array([x1,y1,x2,y2])
+
+
+def average_slope_intercept(image,lines):
+    left_fit=[]
+    right_fit=[]
+
+    for line in lines:
+        x1,y1,x2,y2=line.reshape(4)
+        parameters=np.polyfit((x1,y1),(x2,y2),1)
+        slope=parameters[0]
+        intercept=parameters[1]
+        if slope<0:
+            left_fit.append(slope,intercept)
+        else:
+            right_fit.append(slope,intercept)
+        left_fit_average=np.average(left_fit,axis=0)
+        right_fit_average=np.average(right_fit,axis=0)
+        left_line=make_coordinate(image,left_fit_average)
+        right_line=make_coordinate(image,right_fit_average)
+
 def canny(image):
     gray=cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
 
@@ -49,8 +76,8 @@ image=cv2.imread('test_image.jpg')
 # STEP 1- CONVERT IMAGE TO GRAY SCALE
 #precison of 2 pixels and 2 degree
 lane_image=np.copy(image)
-canny=canny(lane_image)
-cropped_image=region_of_interest(canny)
+canny_image=canny(lane_image)
+cropped_image=region_of_interest(canny_image)
 #STEP 4- IDENTIFYING LINES IN THE image
 # we use hough tranformation to iddntify lines in the image:
 #for each point we plot the rho and theta(radians) for every possible line passing through each point
@@ -60,8 +87,10 @@ cropped_image=region_of_interest(canny)
 #the below line of code return arrays of such suitable lines from cropped image with rho threshold as 2pixels and theta threshold as 1 degree
 #minLineLength=40 means the min accepted line length and maxLineGap=5 implies line with distance between them less than 5 must be clubbed together as a single line
 lines=cv2.HoughLinesP(cropped_image,2,np.pi/180,100,np.array([]),minLineLength=40,maxLineGap=5)
+#the below function returns the averaged lines s.t instead of broken lines we have a single left and right line
+averaged_lines=average_slope_intercept(lane_image,lines)
 #display_lines  function returns all above lines on a masked image of same size as original image
-line_image=display_lines(lane_image,lines)
+line_image=display_lines(lane_image,averaged_lines)
 #combo image is the image formed by doing weighted addition of lane_image(the original colored image) and the line_image(containing straight lines)
 #here lane_image has 20%less weight than line_image which is done to make lane_image look darker in comparison to line_image
 combo_image=cv2.addWeighted(lane_image,0.8,line_image,1,1)
